@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.voyager.navigator)
             implementation(libs.voyager.transitions)
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
