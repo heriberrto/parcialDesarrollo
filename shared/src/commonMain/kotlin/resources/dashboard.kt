@@ -30,6 +30,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 
 /**
  * Opción de menú: título, descripción corta, ícono y la pantalla
@@ -87,104 +91,178 @@ class dashboard : Screen {
             )
         )
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = true,
+                        onClick = {
+                            // Ya estamos en inicio
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Inicio"
+                            )
+                        },
+                        label = {
+                            Text("Inicio")
+                        }
+                    )
 
-            // Título
-            item {
-                Text(text = "Dashboard")
-                Text(text = "Sistema de Gestión de Proyectos Integradores")
-                Spacer(modifier = Modifier.height(24.dp))
-            }
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = {
+                            navigator?.push(ProyectosScreen())
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Assignment,
+                                contentDescription = "Proyectos"
+                            )
+                        },
+                        label = {
+                            Text("Proyectos")
+                        }
+                    )
 
-            // Estadísticas
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(text = "Proyectos: --", modifier = Modifier.weight(1f))
-                    Text(text = "Activos: --", modifier = Modifier.weight(1f))
-                    Text(text = "Finalizados: --", modifier = Modifier.weight(1f))
-                    Text(text = "Estudiantes: --", modifier = Modifier.weight(1f))
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = {
+                            navigator?.push(EquiposScreen())
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Groups,
+                                contentDescription = "Equipos"
+                            )
+                        },
+                        label = {
+                            Text("Equipos")
+                        }
+                    )
+
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = {
+                            navigator?.push(UsuariosScreen())
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Usuarios"
+                            )
+                        },
+                        label = {
+                            Text("Usuarios")
+                        }
+                    )
                 }
-                Spacer(modifier = Modifier.height(32.dp))
             }
+        ) { paddingValues ->
 
-            // Acciones
-            item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { navigator?.push(ProyectosScreen()) }
-                    ) {
-                        Text("Nuevo proyecto")
-                    }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp)
+            ) {
 
-                    OutlinedButton(
-                        onClick = { navigator?.push(ProyectosScreen()) }
-                    ) {
-                        Text("Ver proyectos")
-                    }
+                // Título
+                item {
+                    Text(text = "Dashboard")
+                    Text(text = "Sistema de Gestión de Proyectos Integradores")
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                Spacer(modifier = Modifier.height(32.dp))
-            }
 
-            // Menú de módulos
-            item {
-                Text(
-                    text = "Módulos",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            items(opciones) { opcion ->
-                Card(
-                    onClick = { navigator?.push(opcion.screen) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                ) {
+                // Estadísticas
+                item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Icon(opcion.icono, contentDescription = opcion.titulo)
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(opcion.titulo, style = MaterialTheme.typography.titleMedium)
-                            Text(opcion.descripcion, style = MaterialTheme.typography.bodySmall)
+                        Text(text = "Proyectos: --", modifier = Modifier.weight(1f))
+                        Text(text = "Activos: --", modifier = Modifier.weight(1f))
+                        Text(text = "Finalizados: --", modifier = Modifier.weight(1f))
+                        Text(text = "Estudiantes: --", modifier = Modifier.weight(1f))
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+
+                // Acciones
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = { navigator?.push(ProyectosScreen()) }
+                        ) {
+                            Text("Nuevo proyecto")
+                        }
+
+                        OutlinedButton(
+                            onClick = { navigator?.push(ProyectosScreen()) }
+                        ) {
+                            Text("Ver proyectos")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+
+                // Menú de módulos
+                item {
+                    Text(
+                        text = "Módulos",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                items(opciones) { opcion ->
+                    Card(
+                        onClick = { navigator?.push(opcion.screen) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(opcion.icono, contentDescription = opcion.titulo)
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(opcion.titulo, style = MaterialTheme.typography.titleMedium)
+                                Text(opcion.descripcion, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
-            }
 
-            item {
-                Spacer(modifier = Modifier.height(20.dp))
 
-                // Proyectos recientes
-                Text(text = "Proyectos recientes")
-                Spacer(modifier = Modifier.height(16.dp))
+                item {
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                // Placeholder
-                Text(text = "No hay proyectos para mostrar")
-                Spacer(modifier = Modifier.height(32.dp))
+                    // Proyectos recientes
+                    Text(text = "Proyectos recientes")
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Cerrar sesión
-                OutlinedButton(
-                    onClick = { navigator?.pop() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Cerrar sesión")
+                    // Placeholder
+                    Text(text = "No hay proyectos para mostrar")
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Cerrar sesión
+                    OutlinedButton(
+                        onClick = { navigator?.pop() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cerrar sesión")
+                    }
                 }
             }
         }
+
     }
 }
