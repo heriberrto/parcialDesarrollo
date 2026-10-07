@@ -27,22 +27,33 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 
 /**
- * Módulo: Asignación de docentes tutores.
- * Cubre registro de proyectos a estudiantes/docente y consulta de
- * proyectos asignados al docente.
+ * Módulo: Asignación de docentes tutores y evaluadores.
+ * Mapea con la tabla `asignacion_docente` (id_proyecto, id_usuario, id_rol_asignacion).
  */
 class DocentesTutoresScreen : Screen {
+
+    companion object {
+        fun isValidDocente(docente: String): Boolean = docente.trim().isNotEmpty()
+        fun isValidProyecto(proyecto: String): Boolean = proyecto.trim().isNotEmpty()
+        fun isValidRolAsignacion(rol: String): Boolean = rol.trim().isNotEmpty()
+
+        fun isValidAsignacion(docente: String, proyecto: String, rolAsignacion: String): Boolean {
+            return isValidDocente(docente) && isValidProyecto(proyecto) && isValidRolAsignacion(rolAsignacion)
+        }
+    }
 
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         var docente by remember { mutableStateOf("") }
         var proyectoAsignado by remember { mutableStateOf("") }
+        var rolAsignacion by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf("") }
 
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Docentes tutores") },
+                    title = { Text("Docentes tutores y evaluadores") },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -59,29 +70,49 @@ class DocentesTutoresScreen : Screen {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "Registro de proyectos a estudiantes y docente, y consulta de " +
-                            "proyectos asignados al docente.",
+                    "Asignación de docentes a proyectos integradores como tutores o evaluadores.",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 OutlinedTextField(
                     value = docente,
                     onValueChange = { docente = it },
-                    label = { Text("Nombre del docente") },
+                    label = { Text("Docente (Nombre o Cédula)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = proyectoAsignado,
                     onValueChange = { proyectoAsignado = it },
-                    label = { Text("Proyecto asignado") },
+                    label = { Text("Proyecto integrador asignado") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = rolAsignacion,
+                    onValueChange = { rolAsignacion = it },
+                    label = { Text("Rol de asignación (Tutor, Evaluador)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Button(
-                    onClick = { /* TODO: conectar con la lógica/repositorio real */ },
+                    onClick = {
+                        errorMessage = if (isValidAsignacion(docente, proyectoAsignado, rolAsignacion)) {
+                            /* TODO: conectar con repositorio/base de datos */
+                            ""
+                        } else {
+                            "Por favor complete el docente, proyecto y rol de asignación."
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Guardar asignación")
+                }
+
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }

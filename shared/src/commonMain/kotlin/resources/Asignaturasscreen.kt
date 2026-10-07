@@ -28,15 +28,28 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 
 /**
  * Módulo: Administración de asignaturas.
- * Cubre registro/actualización de asignaturas y consulta de activas.
+ * Mapea con la tabla `asignatura` (id_programa, nombre, codigo, descripcion, estado).
  */
 class AsignaturasScreen : Screen {
+
+    companion object {
+        fun isValidNombre(nombre: String): Boolean = nombre.trim().isNotEmpty()
+        fun isValidCodigo(codigo: String): Boolean = codigo.trim().isNotEmpty()
+        fun isValidPrograma(programa: String): Boolean = programa.trim().isNotEmpty()
+
+        fun isValidAsignatura(nombre: String, codigo: String, programa: String): Boolean {
+            return isValidNombre(nombre) && isValidCodigo(codigo) && isValidPrograma(programa)
+        }
+    }
 
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         var nombreAsignatura by remember { mutableStateOf("") }
-        var creditos by remember { mutableStateOf("") }
+        var codigo by remember { mutableStateOf("") }
+        var programa by remember { mutableStateOf("") }
+        var descripcion by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf("") }
 
         Scaffold(
             topBar = {
@@ -69,17 +82,44 @@ class AsignaturasScreen : Screen {
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = creditos,
-                    onValueChange = { creditos = it },
-                    label = { Text("Créditos") },
+                    value = codigo,
+                    onValueChange = { codigo = it },
+                    label = { Text("Código de la asignatura") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = programa,
+                    onValueChange = { programa = it },
+                    label = { Text("Programa académico asociado") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    label = { Text("Descripción") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Button(
-                    onClick = { /* TODO: conectar con la lógica/repositorio real */ },
+                    onClick = {
+                        errorMessage = if (isValidAsignatura(nombreAsignatura, codigo, programa)) {
+                            /* TODO: conectar con repositorio/base de datos */
+                            ""
+                        } else {
+                            "Por favor complete el nombre, código y programa académico."
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Guardar asignatura")
+                }
+
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }

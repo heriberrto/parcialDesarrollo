@@ -28,15 +28,27 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 
 /**
  * Módulo: Gestión de equipos de estudiantes.
- * Cubre creación de equipos de trabajo y consulta de integrantes.
+ * Mapea con las tablas `equipo` (id_proyecto, nombre, estado) y `equipo_estudiante`.
  */
 class EquiposScreen : Screen {
+
+    companion object {
+        fun isValidProyecto(proyecto: String): Boolean = proyecto.trim().isNotEmpty()
+        fun isValidNombreEquipo(nombre: String): Boolean = nombre.trim().isNotEmpty()
+        fun isValidIntegrantes(integrantes: String): Boolean = integrantes.trim().isNotEmpty()
+
+        fun isValidEquipo(proyecto: String, nombreEquipo: String, integrantes: String): Boolean {
+            return isValidProyecto(proyecto) && isValidNombreEquipo(nombreEquipo) && isValidIntegrantes(integrantes)
+        }
+    }
 
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        var proyecto by remember { mutableStateOf("") }
         var nombreEquipo by remember { mutableStateOf("") }
         var integrantes by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf("") }
 
         Scaffold(
             topBar = {
@@ -58,10 +70,16 @@ class EquiposScreen : Screen {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "Creación de equipos de trabajo y consulta de sus integrantes.",
+                    "Creación de equipos de trabajo y asignación de integrantes por proyecto.",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
+                OutlinedTextField(
+                    value = proyecto,
+                    onValueChange = { proyecto = it },
+                    label = { Text("Proyecto integrador asociado") },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 OutlinedTextField(
                     value = nombreEquipo,
                     onValueChange = { nombreEquipo = it },
@@ -71,15 +89,30 @@ class EquiposScreen : Screen {
                 OutlinedTextField(
                     value = integrantes,
                     onValueChange = { integrantes = it },
-                    label = { Text("Integrantes (separados por coma)") },
+                    label = { Text("Estudiantes / Integrantes (IDs o Nombres)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Button(
-                    onClick = { /* TODO: conectar con la lógica/repositorio real */ },
+                    onClick = {
+                        errorMessage = if (isValidEquipo(proyecto, nombreEquipo, integrantes)) {
+                            /* TODO: conectar con repositorio/base de datos */
+                            ""
+                        } else {
+                            "Por favor complete el proyecto, nombre del equipo e integrantes."
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Guardar equipo")
+                }
+
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }

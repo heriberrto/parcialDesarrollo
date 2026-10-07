@@ -34,6 +34,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -47,9 +48,20 @@ kotlin {
             implementation(libs.voyager.navigator)
             implementation(libs.voyager.transitions)
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.negotiation)
+            implementation(libs.kotlin.serialization)
+            implementation(libs.ettings)
+            implementation(libs.settingslib)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        val androidDeviceTest by getting {
+            dependencies {
+                implementation(libs.androidx.test.runner)
+                implementation(libs.androidx.testExt.junit)
+            }
         }
     }
 }
