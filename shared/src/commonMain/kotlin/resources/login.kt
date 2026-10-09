@@ -186,7 +186,7 @@ class Login : Screen {
                 onClick = {
                     scope.launch {
                         try {
-                            val responseText: String = client.post("http://192.168.2.13/API/login.php") {
+                            val responseText: String = client.post(ApiCliente.BASE_URL + "login.php") {
                                 contentType(ContentType.Application.FormUrlEncoded)
                                 setBody(
                                     Parameters.build {

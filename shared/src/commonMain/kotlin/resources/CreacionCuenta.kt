@@ -227,7 +227,7 @@ class CreacionCuenta : Screen {
                     scope.launch {
                         try {
                             val client = HttpClient()
-                            val responseText: String = client.post("http://192.168.2.13/API/crearUsuario.php") {
+                            val responseText: String = client.post(ApiCliente.BASE_URL + "crearUsuario.php") {
                                 contentType(ContentType.Application.FormUrlEncoded)
                                 setBody(
                                     Parameters.build {

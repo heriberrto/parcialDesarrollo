@@ -1,45 +1,7 @@
 package resources
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.Parameters
-import io.ktor.http.contentType
-import io.ktor.http.formUrlEncode
-import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Módulo: Gestión de equipos de estudiantes.
@@ -55,127 +17,53 @@ class EquiposScreen : Screen {
         fun isValidEquipo(proyecto: String, nombreEquipo: String, integrantes: String): Boolean {
             return isValidProyecto(proyecto) && isValidNombreEquipo(nombreEquipo) && isValidIntegrantes(integrantes)
         }
+
+        /** Los integrantes deben ser IDs numéricos separados por comas, ej: "1,2,3". */
+        fun isValidListaIds(integrantes: String): Boolean =
+            integrantes.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                .let { ids -> ids.isNotEmpty() && ids.all { it.toIntOrNull() != null } }
     }
 
     @Composable
     override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val scope = rememberCoroutineScope()
-
-        var proyecto by remember { mutableStateOf("") }
-        var nombreEquipo by remember { mutableStateOf("") }
-        var integrantes by remember { mutableStateOf("") }
-
-        var mensaje by remember { mutableStateOf("") }
-        var showDialog by remember { mutableStateOf(false) }
-
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Equipos de estudiantes") },
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                        }
-                    }
+        CrudPantalla(
+            titulo = "Equipos de estudiantes",
+            descripcion = "Creación, consulta, edición y eliminación de equipos por proyecto. " +
+                    "Los integrantes se escriben como IDs de usuario separados por comas (ej: 3,5,8).",
+            campos = listOf(
+                CampoFormulario("id_proyecto", "ID del proyecto integrador", numerico = true),
+                CampoFormulario("nombre", "Nombre del equipo"),
+                CampoFormulario("integrantes", "IDs de los integrantes (ej: 3,5,8)")
+            ),
+            archivoListar = "listarEquipo.php",
+            archivoCrear = "crearEquipo.php",
+            archivoModificar = "modificarEquipo.php",
+            archivoEliminar = "eliminarEquipo.php",
+            tituloItem = { it.texto("nombre") },
+            detalleItem = {
+                "ID ${it.texto("id_equipo")} · Proyecto: ${it.texto("proyecto")} (ID ${it.texto("id_proyecto")})\n" +
+                        "Integrantes: ${it.texto("nombres_integrantes").ifEmpty { "ninguno" }}"
+            },
+            valoresParaEditar = {
+                mapOf(
+                    "id_proyecto" to it.texto("id_proyecto"),
+                    "nombre" to it.texto("nombre"),
+                    "integrantes" to it.texto("integrantes")
                 )
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Creación de equipos de trabajo y asignación de integrantes por proyecto.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                OutlinedTextField(
-                    value = proyecto,
-                    onValueChange = { proyecto = it },
-                    label = { Text("Proyecto ID o asociado (id_proyecto)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = nombreEquipo,
-                    onValueChange = { nombreEquipo = it },
-                    label = { Text("Nombre del equipo") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = integrantes,
-                    onValueChange = { integrantes = it },
-                    label = { Text("Estudiantes / Integrantes (IDs separados por coma)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Button(
-                    onClick = {
-                        if (!isValidEquipo(proyecto, nombreEquipo, integrantes)) {
-                            mensaje = "Por favor complete el proyecto, nombre del equipo e integrantes."
-                            showDialog = true
-                            return@Button
-                        }
-
-                        scope.launch {
-                            try {
-                                val client = HttpClient()
-                                val responseText: String = client.post("http://192.168.2.13/API/crearEquipo.php") {
-                                    contentType(ContentType.Application.FormUrlEncoded)
-                                    setBody(
-                                        Parameters.build {
-                                            append("id_proyecto", proyecto)
-                                            append("proyecto", proyecto)
-                                            append("nombre", nombreEquipo)
-                                            append("nombreEquipo", nombreEquipo)
-                                            append("integrantes", integrantes)
-                                            append("estudiantes", integrantes)
-                                        }.formUrlEncode()
-                                    )
-                                }.body()
-                                client.close()
-
-                                val trimmed = responseText.trim()
-                                if (trimmed.startsWith("<")) {
-                                    mensaje = "El servidor devolvió una página HTML en lugar de JSON. Verifica 'crearEquipo.php' en tu servidor Apache."
-                                } else {
-                                    try {
-                                        val json = Json.parseToJsonElement(trimmed).jsonObject
-                                        val msg = json["message"]?.jsonPrimitive?.content
-                                            ?: json["mensaje"]?.jsonPrimitive?.content
-                                            ?: json["error"]?.jsonPrimitive?.content ?: trimmed
-                                        mensaje = msg
-                                    } catch (_: Exception) {
-                                        mensaje = trimmed
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                mensaje = "Equipo guardado localmente o error de red: ${e.message}"
-                            }
-                            showDialog = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Guardar equipo")
+            },
+            identificador = { mapOf("id_equipo" to it.texto("id_equipo")) },
+            validar = { v, _ ->
+                val proyecto = v["id_proyecto"].orEmpty()
+                val integrantes = v["integrantes"].orEmpty()
+                when {
+                    !isValidEquipo(proyecto, v["nombre"].orEmpty(), integrantes) ->
+                        "Por favor complete el proyecto, nombre del equipo e integrantes."
+                    proyecto.toIntOrNull() == null -> "El proyecto debe ser un ID numérico."
+                    !isValidListaIds(integrantes) -> "Los integrantes deben ser IDs numéricos separados por comas."
+                    else -> null
                 }
-
-                if (showDialog && mensaje.isNotEmpty()) {
-                    AlertDialog(
-                        onDismissRequest = { showDialog = false },
-                        confirmButton = {
-                            TextButton(onClick = { showDialog = false }) {
-                                Text("Aceptar")
-                            }
-                        },
-                        title = { Text("Equipos de Estudiantes") },
-                        text = { Text(mensaje) }
-                    )
-                }
-            }
-        }
+            },
+            textoGuardar = "Guardar equipo"
+        )
     }
 }
