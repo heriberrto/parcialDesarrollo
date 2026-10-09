@@ -57,6 +57,23 @@ class CreacionCuenta : Screen {
         fun isValidApellido(apellido: String): Boolean = apellido.trim().isNotEmpty()
         fun isValidEmail(email: String): Boolean = email.contains("@") && email.trim().length > 3
         fun isValidPassword(password: String): Boolean = password.trim().isNotEmpty()
+        fun isValidRol(rol: String): Boolean = rol.trim().isNotEmpty()
+
+        fun isFormComplete(
+            identificacion: String,
+            nombre: String,
+            apellido: String,
+            email: String,
+            password: String,
+            rol: String
+        ): Boolean {
+            return identificacion.isNotBlank() &&
+                    nombre.isNotBlank() &&
+                    apellido.isNotBlank() &&
+                    email.isNotBlank() &&
+                    password.isNotBlank() &&
+                    rol.isNotBlank()
+        }
 
         fun isFormComplete(
             identificacion: String,
@@ -65,11 +82,23 @@ class CreacionCuenta : Screen {
             email: String,
             password: String
         ): Boolean {
-            return identificacion.isNotBlank() &&
-                    nombre.isNotBlank() &&
-                    apellido.isNotBlank() &&
-                    email.isNotBlank() &&
-                    password.isNotBlank()
+            return isFormComplete(identificacion, nombre, apellido, email, password, "Estudiante")
+        }
+
+        fun isValidCuenta(
+            identificacion: String,
+            nombre: String,
+            apellido: String,
+            email: String,
+            password: String,
+            rol: String
+        ): Boolean {
+            return isValidIdentificacion(identificacion) &&
+                    isValidNombre(nombre) &&
+                    isValidApellido(apellido) &&
+                    isValidEmail(email) &&
+                    isValidPassword(password) &&
+                    isValidRol(rol)
         }
 
         fun isValidCuenta(
@@ -79,11 +108,7 @@ class CreacionCuenta : Screen {
             email: String,
             password: String
         ): Boolean {
-            return isValidIdentificacion(identificacion) &&
-                    isValidNombre(nombre) &&
-                    isValidApellido(apellido) &&
-                    isValidEmail(email) &&
-                    isValidPassword(password)
+            return isValidCuenta(identificacion, nombre, apellido, email, password, "Estudiante")
         }
     }
 
@@ -97,6 +122,7 @@ class CreacionCuenta : Screen {
         var apellido by remember { mutableStateOf("") }
         var email by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
+        var rol by remember { mutableStateOf("Estudiante") }
         var passwordVisible by remember { mutableStateOf(false) }
 
         var mensaje by remember { mutableStateOf("") }
@@ -178,11 +204,21 @@ class CreacionCuenta : Screen {
                 }
             )
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = rol,
+                onValueChange = { rol = it },
+                label = { Text("Rol (Estudiante, Docente, Administrador)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
-                    if (!isFormComplete(identificacion, nombre, apellido, email, password)) {
+                    if (!isFormComplete(identificacion, nombre, apellido, email, password, rol)) {
                         mensaje = "Por favor complete todos los campos."
                         showDialog = true
                         return@Button
@@ -206,6 +242,13 @@ class CreacionCuenta : Screen {
                                         append("password_hash", password)
                                         append("contraseña", password)
                                         append("password", password)
+                                        append("rol", rol)
+                                        append("id_rol", when(rol.trim().lowercase()) {
+                                            "administrador", "admin" -> "1"
+                                            "estudiante" -> "2"
+                                            "docente" -> "3"
+                                            else -> "2"
+                                        })
                                     }.formUrlEncode()
                                 )
                             }.body()
@@ -248,23 +291,12 @@ class CreacionCuenta : Screen {
                 Text("Crear cuenta")
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(
-                onClick = {
-                    navigator.push(login())
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("¿Ya tienes una cuenta? Ingresa")
-            }
-
             if (showDialog && mensaje.isNotEmpty()) {
                 AlertDialog(
                     onDismissRequest = {
                         showDialog = false
                         if (isSuccess) {
-                            navigator.push(login())
+                            navigator.pop()
                         }
                     },
                     confirmButton = {
@@ -272,14 +304,14 @@ class CreacionCuenta : Screen {
                             onClick = {
                                 showDialog = false
                                 if (isSuccess) {
-                                    navigator.push(login())
+                                    navigator.pop()
                                 }
                             }
                         ) {
                             Text("Aceptar")
                         }
                     },
-                    title = { Text(if (isSuccess) "Registro Exitoso" else "Atención") },
+                    title = { Text("Crear Cuenta") },
                     text = { Text(mensaje) }
                 )
             }
