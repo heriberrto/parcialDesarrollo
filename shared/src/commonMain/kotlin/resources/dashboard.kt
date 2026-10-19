@@ -8,20 +8,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,10 +37,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 
 /**
  * Opción de menú: título, descripción corta, ícono y la pantalla
@@ -47,6 +50,21 @@ private data class MenuOption(
 )
 
 class dashboard : Screen {
+
+    companion object {
+        fun obtenerNombreUsuarioConectado(): String {
+            val nombreCompleto = "${global.nombre} ${global.apellido}".trim()
+            val opciones = listOf(
+                ObjloginLogin.nomUsu,
+                nombreCompleto,
+                global.nomUsu,
+                global.usuario,
+                global.email
+            )
+            return opciones.firstOrNull { it.isNotBlank() } ?: "Usuario Conectado"
+        }
+    }
+
     @Composable
     override fun Content() {
 
@@ -76,6 +94,18 @@ class dashboard : Screen {
                 descripcion = "Registro, consulta y edición de proyectos",
                 icono = Icons.Default.Assignment,
                 screen = ProyectosScreen()
+            ),
+            MenuOption(
+                titulo = "Actividades",
+                descripcion = "Creacion y consulta de actividades",
+                icono = Icons.Default.SupervisorAccount,
+                screen = ActividadesScreen()
+            ),
+            MenuOption(
+                titulo = "Evidencias",
+                descripcion = "Subida de evidencias para las actividades en los proyectos",
+                icono = Icons.Default.SupervisorAccount,
+                screen = EvidenciasScreen()
             ),
             MenuOption(
                 titulo = "Equipos de estudiantes",
@@ -168,10 +198,62 @@ class dashboard : Screen {
                     .padding(24.dp)
             ) {
 
-                // Título
+                // Tarjeta de Usuario Conectado y Título
                 item {
-                    Text(text = "Dashboard")
-                    Text(text = "Sistema de Gestión de Proyectos Integradores")
+                    val usuarioConectado = obtenerNombreUsuarioConectado()
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Usuario conectado",
+                                modifier = Modifier.size(44.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Column {
+                                Text(
+                                    text = "Usuario Conectado",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = usuarioConectado,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                if (global.email.isNotBlank() && global.email != usuarioConectado) {
+                                    Text(
+                                        text = global.email,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "Dashboard",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Text(
+                        text = "Sistema de Gestión de Proyectos Integradores",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
@@ -241,7 +323,6 @@ class dashboard : Screen {
                     }
                 }
 
-
                 item {
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -255,7 +336,19 @@ class dashboard : Screen {
 
                     // Cerrar sesión
                     OutlinedButton(
-                        onClick = { navigator?.pop() },
+                        onClick = {
+                            global.documento = ""
+                            global.nombre = ""
+                            global.apellido = ""
+                            global.email = ""
+                            global.usuario = ""
+                            global.clave = ""
+                            global.nomUsu = ""
+                            ObjloginLogin.nombre = ""
+                            ObjloginLogin.apellido = ""
+                            ObjloginLogin.nomUsu = ""
+                            navigator?.pop()
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Cerrar sesión")
@@ -263,6 +356,5 @@ class dashboard : Screen {
                 }
             }
         }
-
     }
 }

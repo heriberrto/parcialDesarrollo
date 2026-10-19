@@ -101,6 +101,8 @@ private object InMemorySettings : Settings {
 
 class Login : Screen {
     var idperfil: Int = 0
+
+    @Transient
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
@@ -204,6 +206,13 @@ class Login : Screen {
                                 if (isValidCredentials(usuario, clave)) {
                                     global.usuario = usuario
                                     global.clave = clave
+                                    if (global.nombre.isBlank()) global.nombre = "Administrador"
+                                    if (global.email.isBlank()) global.email = usuario
+                                    val nomCompleto = "${global.nombre} ${global.apellido}".trim()
+                                    global.nomUsu = if (nomCompleto.isNotBlank()) nomCompleto else usuario
+                                    ObjloginLogin.nombre = global.nombre
+                                    ObjloginLogin.apellido = global.apellido
+                                    ObjloginLogin.nomUsu = global.nomUsu
                                     settings.putString(KEY_USU, usuario)
                                     settings.putString(KEY_CLAV, clave)
                                     navigator.push(dashboard())
@@ -232,9 +241,12 @@ class Login : Screen {
                                     global.usuario = usuario
                                     global.clave = clave
 
+                                    val nomCompleto = "${global.nombre} ${global.apellido}".trim()
+                                    global.nomUsu = if (nomCompleto.isNotBlank()) nomCompleto else usuario
+
                                     ObjloginLogin.nombre = global.nombre
                                     ObjloginLogin.apellido = global.apellido
-                                    ObjloginLogin.nomUsu = "${global.nombre} ${global.apellido}".trim()
+                                    ObjloginLogin.nomUsu = global.nomUsu
 
                                     settings.putString(KEY_USU, usuario)
                                     settings.putString(KEY_CLAV, clave)
@@ -250,6 +262,13 @@ class Login : Screen {
                             if (isValidCredentials(usuario, clave)) {
                                 global.usuario = usuario
                                 global.clave = clave
+                                if (global.nombre.isBlank()) global.nombre = "Administrador"
+                                if (global.email.isBlank()) global.email = usuario
+                                val nomCompleto = "${global.nombre} ${global.apellido}".trim()
+                                global.nomUsu = if (nomCompleto.isNotBlank()) nomCompleto else usuario
+                                ObjloginLogin.nombre = global.nombre
+                                ObjloginLogin.apellido = global.apellido
+                                ObjloginLogin.nomUsu = global.nomUsu
                                 settings.putString(KEY_USU, usuario)
                                 settings.putString(KEY_CLAV, clave)
                                 navigator.push(dashboard())
