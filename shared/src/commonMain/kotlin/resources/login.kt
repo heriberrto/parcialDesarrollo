@@ -125,6 +125,68 @@ class Login : Screen {
         fun isValidCredentials(email: String, password: String): Boolean {
             return email == CORRECT_EMAIL && password == CORRECT_PASSWORD
         }
+
+        fun isValidEmail(email: String): Boolean {
+            val trimmed = email.trim()
+            return trimmed.isNotBlank() && trimmed.contains("@") && trimmed.contains(".")
+        }
+
+        fun isValidPassword(password: String): Boolean {
+            return password.trim().isNotBlank() && password.length >= 6
+        }
+
+        fun determinePerfil(usuario: String): String {
+            return when {
+                usuario.contains("docente", ignoreCase = true) || usuario.contains("yamil", ignoreCase = true) -> "Docente"
+                usuario.contains("estudiante", ignoreCase = true) || usuario.contains("heri", ignoreCase = true) -> "Estudiante"
+                else -> "Administrador"
+            }
+        }
+
+        fun determineIdPerfil(perfil: String): Int {
+            return when (perfil.lowercase().trim()) {
+                "administrador", "admin" -> 1
+                "estudiante" -> 2
+                "docente" -> 3
+                else -> 1
+            }
+        }
+
+        fun formatNombreUsuario(nombre: String, apellido: String, fallbackUsuario: String): String {
+            val nomCompleto = "$nombre $apellido".trim()
+            return if (nomCompleto.isNotBlank()) nomCompleto else fallbackUsuario
+        }
+
+        fun updateGlobalAndLoginState(
+            usuario: String,
+            clave: String,
+            nombre: String = "",
+            apellido: String = "",
+            email: String = "",
+            perfil: String = "",
+            idPerfil: Int = 0,
+            documento: String = ""
+        ) {
+            global.usuario = usuario
+            global.clave = clave
+            global.nombre = if (nombre.isNotBlank()) nombre else if (global.nombre.isBlank()) "Administrador" else global.nombre
+            global.apellido = if (apellido.isNotBlank()) apellido else global.apellido
+            global.email = if (email.isNotBlank()) email else if (global.email.isBlank()) usuario else global.email
+            global.documento = if (documento.isNotBlank()) documento else global.documento
+
+            val computedPerfil = if (perfil.isNotBlank()) perfil else if (global.perfil.isBlank()) determinePerfil(usuario) else global.perfil
+            global.perfil = computedPerfil
+
+            val computedIdPerfil = if (idPerfil > 0) idPerfil else determineIdPerfil(computedPerfil)
+            global.idperfil = computedIdPerfil
+
+            global.nomUsu = formatNombreUsuario(global.nombre, global.apellido, usuario)
+
+            ObjloginLogin.nombre = global.nombre
+            ObjloginLogin.apellido = global.apellido
+            ObjloginLogin.nomUsu = global.nomUsu
+            ObjloginLogin.idperfil = global.idperfil
+        }
     }
 
     @Composable
@@ -208,11 +270,25 @@ class Login : Screen {
                                     global.clave = clave
                                     if (global.nombre.isBlank()) global.nombre = "Administrador"
                                     if (global.email.isBlank()) global.email = usuario
+                                    if (global.perfil.isBlank()) {
+                                        global.perfil = when {
+                                            usuario.contains("docente", ignoreCase = true) || usuario.contains("yamil", ignoreCase = true) -> "Docente"
+                                            usuario.contains("estudiante", ignoreCase = true) || usuario.contains("heri", ignoreCase = true) -> "Estudiante"
+                                            else -> "Administrador"
+                                        }
+                                    }
+                                    global.idperfil = when (global.perfil.lowercase()) {
+                                        "administrador", "admin" -> 1
+                                        "estudiante" -> 2
+                                        "docente" -> 3
+                                        else -> 1
+                                    }
                                     val nomCompleto = "${global.nombre} ${global.apellido}".trim()
                                     global.nomUsu = if (nomCompleto.isNotBlank()) nomCompleto else usuario
                                     ObjloginLogin.nombre = global.nombre
                                     ObjloginLogin.apellido = global.apellido
                                     ObjloginLogin.nomUsu = global.nomUsu
+                                    ObjloginLogin.idperfil = global.idperfil
                                     settings.putString(KEY_USU, usuario)
                                     settings.putString(KEY_CLAV, clave)
                                     navigator.push(dashboard())
@@ -229,17 +305,57 @@ class Login : Screen {
 
                                 if (success) {
                                     val userObj = json["usuario"]?.jsonObject
-                                    
+                                        ?: json["data"]?.jsonObject
+                                        ?: json["datos"]?.jsonObject
+                                        ?: json["user"]?.jsonObject
+
                                     global.documento = userObj?.get("identificacion")?.jsonPrimitive?.content
+                                        ?: userObj?.get("documento")?.jsonPrimitive?.content
                                         ?: json["documento"]?.jsonPrimitive?.content ?: ""
                                     global.nombre = userObj?.get("nombre")?.jsonPrimitive?.content
+                                        ?: userObj?.get("nombres")?.jsonPrimitive?.content
                                         ?: json["nombre"]?.jsonPrimitive?.content ?: ""
                                     global.apellido = userObj?.get("apellido")?.jsonPrimitive?.content
+                                        ?: userObj?.get("apellidos")?.jsonPrimitive?.content
                                         ?: json["apellido"]?.jsonPrimitive?.content ?: ""
                                     global.email = userObj?.get("email")?.jsonPrimitive?.content
+                                        ?: userObj?.get("correo")?.jsonPrimitive?.content
                                         ?: json["email"]?.jsonPrimitive?.content ?: usuario
                                     global.usuario = usuario
                                     global.clave = clave
+
+                                    val perfilVal = userObj?.get("rol")?.jsonPrimitive?.content
+                                        ?: userObj?.get("perfil")?.jsonPrimitive?.content
+                                        ?: userObj?.get("nombre_rol")?.jsonPrimitive?.content
+                                        ?: userObj?.get("rol_nombre")?.jsonPrimitive?.content
+                                        ?: json["rol"]?.jsonPrimitive?.content
+                                        ?: json["perfil"]?.jsonPrimitive?.content
+                                        ?: json["nombre_rol"]?.jsonPrimitive?.content
+                                        ?: ""
+
+                                    val idPerfilVal = userObj?.get("id_rol")?.jsonPrimitive?.content
+                                        ?: userObj?.get("id_perfil")?.jsonPrimitive?.content
+                                        ?: userObj?.get("rol_id")?.jsonPrimitive?.content
+                                        ?: json["id_rol"]?.jsonPrimitive?.content
+                                        ?: json["id_perfil"]?.jsonPrimitive?.content
+                                        ?: ""
+
+                                    global.idperfil = idPerfilVal.toIntOrNull()
+                                        ?: perfilVal.toIntOrNull()
+                                        ?: when (perfilVal.lowercase()) {
+                                            "administrador", "admin" -> 1
+                                            "estudiante" -> 2
+                                            "docente" -> 3
+                                            else -> 0
+                                        }
+
+                                    global.perfil = when {
+                                        perfilVal.equals("1", ignoreCase = true) || perfilVal.contains("admin", ignoreCase = true) || global.idperfil == 1 -> "Administrador"
+                                        perfilVal.equals("3", ignoreCase = true) || perfilVal.contains("docente", ignoreCase = true) || global.idperfil == 3 -> "Docente"
+                                        perfilVal.equals("2", ignoreCase = true) || perfilVal.contains("estudiante", ignoreCase = true) || global.idperfil == 2 -> "Estudiante"
+                                        perfilVal.isNotBlank() -> perfilVal
+                                        else -> ""
+                                    }
 
                                     val nomCompleto = "${global.nombre} ${global.apellido}".trim()
                                     global.nomUsu = if (nomCompleto.isNotBlank()) nomCompleto else usuario
@@ -247,6 +363,7 @@ class Login : Screen {
                                     ObjloginLogin.nombre = global.nombre
                                     ObjloginLogin.apellido = global.apellido
                                     ObjloginLogin.nomUsu = global.nomUsu
+                                    ObjloginLogin.idperfil = global.idperfil
 
                                     settings.putString(KEY_USU, usuario)
                                     settings.putString(KEY_CLAV, clave)
@@ -264,11 +381,25 @@ class Login : Screen {
                                 global.clave = clave
                                 if (global.nombre.isBlank()) global.nombre = "Administrador"
                                 if (global.email.isBlank()) global.email = usuario
+                                if (global.perfil.isBlank()) {
+                                    global.perfil = when {
+                                        usuario.contains("docente", ignoreCase = true) -> "Docente"
+                                        usuario.contains("estudiante", ignoreCase = true) -> "Estudiante"
+                                        else -> "Administrador"
+                                    }
+                                }
+                                global.idperfil = when (global.perfil.lowercase()) {
+                                    "administrador", "admin" -> 1
+                                    "estudiante" -> 2
+                                    "docente" -> 3
+                                    else -> 1
+                                }
                                 val nomCompleto = "${global.nombre} ${global.apellido}".trim()
                                 global.nomUsu = if (nomCompleto.isNotBlank()) nomCompleto else usuario
                                 ObjloginLogin.nombre = global.nombre
                                 ObjloginLogin.apellido = global.apellido
                                 ObjloginLogin.nomUsu = global.nomUsu
+                                ObjloginLogin.idperfil = global.idperfil
                                 settings.putString(KEY_USU, usuario)
                                 settings.putString(KEY_CLAV, clave)
                                 navigator.push(dashboard())
