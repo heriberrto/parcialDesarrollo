@@ -198,6 +198,39 @@ class EvidenciasScreenTest {
         assertEquals(mensajeEsperado, errorUsuarioNoNumerico)
     }
 
+    @Test
+    fun testIsExtensionPermitidaWithValidFiles() {
+        assertTrue(EvidenciasScreen.isExtensionPermitida("informe.pdf"))
+        assertTrue(EvidenciasScreen.isExtensionPermitida("documento.docx"))
+        assertTrue(EvidenciasScreen.isExtensionPermitida("formato_antiguo.doc"))
+        assertTrue(EvidenciasScreen.isExtensionPermitida("hoja_calculo.xlsx"))
+        assertTrue(EvidenciasScreen.isExtensionPermitida("reporte_datos.xls"))
+        assertTrue(EvidenciasScreen.isExtensionPermitida("EN_MAYUSCULAS.PDF"))
+        assertTrue(EvidenciasScreen.isExtensionPermitida(""))
+    }
+
+    @Test
+    fun testIsExtensionPermitidaWithInvalidFiles() {
+        assertFalse(EvidenciasScreen.isExtensionPermitida("imagen.png"))
+        assertFalse(EvidenciasScreen.isExtensionPermitida("foto.jpg"))
+        assertFalse(EvidenciasScreen.isExtensionPermitida("programa.exe"))
+        assertFalse(EvidenciasScreen.isExtensionPermitida("script.sh"))
+        assertFalse(EvidenciasScreen.isExtensionPermitida("comprimido.zip"))
+    }
+
+    @Test
+    fun testValidarFormularioFailsWhenExtensionNotAllowed() {
+        val errorExtensionInvalida = EvidenciasScreen.validarFormulario(
+            idActividad = "1",
+            idUsuario = "2",
+            titulo = "Evidencia Sprint 1",
+            nombreArchivo = "archivo_no_permitido.exe"
+        )
+
+        val mensajeEsperado = "Tipo de archivo no permitido. Solo se aceptan documentos PDF (.pdf), Word (.docx, .doc) y Excel (.xlsx, .xls)."
+        assertEquals(mensajeEsperado, errorExtensionInvalida)
+    }
+
     // ==========================================
     // 7. ElementoCrud Formatting & Mapping Tests
     // ==========================================

@@ -59,13 +59,21 @@ class UsuariosScreen : Screen {
                         "${it.texto("email")} · ${it.texto("rol").ifEmpty { "Sin rol" }}"
             },
             valoresParaEditar = {
+                val rolStr = it.texto("rol").substringBefore(",").trim()
+                val idRolStr = when {
+                    rolStr.lowercase().contains("admin") -> "1"
+                    rolStr.lowercase().contains("docente") || rolStr.lowercase().contains("profesor") -> "3"
+                    else -> "2"
+                }
                 mapOf(
                     "nombre" to it.texto("nombre"),
                     "apellido" to it.texto("apellido"),
                     "email" to it.texto("email"),
                     "identificacion" to it.texto("identificacion"),
                     "password" to "",
-                    "rol" to it.texto("rol").substringBefore(",").trim()
+                    "rol" to rolStr,
+                    "id_rol" to idRolStr,
+                    "id_perfil" to idRolStr
                 )
             },
             identificador = { mapOf("id_usuario" to it.texto("id_usuario")) },

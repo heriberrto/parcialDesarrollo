@@ -225,6 +225,27 @@ fun CrudPantalla(
                     paramsMap.putAll(identificador(itemEditando!!))
                 }
 
+                val rolText = (valoresFormulario["rol"] ?: "").trim().lowercase()
+                if (rolText.isNotEmpty()) {
+                    val computedId = when {
+                        rolText.contains("admin") -> "1"
+                        rolText.contains("docente") || rolText.contains("profesor") || rolText.contains("tutor") -> "3"
+                        else -> "2"
+                    }
+                    if (!paramsMap.containsKey("id_rol")) paramsMap["id_rol"] = computedId
+                    if (!paramsMap.containsKey("id_perfil")) paramsMap["id_perfil"] = computedId
+                }
+
+                val pwdVal = (valoresFormulario["password"] ?: "").trim()
+                if (pwdVal.isNotEmpty()) {
+                    if (!paramsMap.containsKey("password_hash")) {
+                        paramsMap["password_hash"] = CryptoUtils.sha256(pwdVal)
+                    }
+                    if (!paramsMap.containsKey("password_encrypted")) {
+                        paramsMap["password_encrypted"] = CryptoUtils.encryptField(pwdVal)
+                    }
+                }
+
                 val responseText: String = client.post(ApiCliente.BASE_URL + archivoTarget) {
                     contentType(ContentType.Application.FormUrlEncoded)
                     setBody(
@@ -236,10 +257,24 @@ fun CrudPantalla(
 
                 val trimmed = responseText.trim()
                 if (trimmed.startsWith("<")) {
-                    errorFormulario = "El servidor devolvió HTML al guardar en '$archivoTarget'."
+                    val errorSnippet = if (trimmed.contains("<title>", ignoreCase = true)) {
+                        trimmed.substringAfter("<title>").substringBefore("</title>").trim()
+                    } else {
+                        trimmed.take(150)
+                    }
+                    errorFormulario = "Error del servidor ($errorSnippet). Revisa '$archivoTarget'."
                 } else {
-                    mostrarFormulario = false
-                    cargarDatos()
+                    val json = Json { ignoreUnknownKeys = true; isLenient = true }
+                    val parsedObj = try { json.parseToJsonElement(trimmed) as? JsonObject } catch (_: Exception) { null }
+                    val isSuccess = parsedObj?.get("success")?.let { (it as? JsonPrimitive)?.content == "true" } ?: true
+                    val serverMsg = parsedObj?.get("message") ?: parsedObj?.get("mensaje")
+
+                    if (!isSuccess && serverMsg is JsonPrimitive) {
+                        errorFormulario = "Servidor: ${serverMsg.content}"
+                    } else {
+                        mostrarFormulario = false
+                        cargarDatos()
+                    }
                 }
             } catch (e: Exception) {
                 errorFormulario = "Error al guardar: ${e.message}"

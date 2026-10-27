@@ -100,8 +100,10 @@ class DashboardTest {
         assertEquals(UserRole.DOCENTE, dashboard.obtenerRolActual())
         assertEquals("Docente", dashboard.obtenerNombreRolActual())
 
-        // Docentes tienen acceso a todo excepto "Usuarios y roles"
+        // Docentes no tienen acceso a "Usuarios y roles" ni "Creacion de roles"
         assertFalse(dashboard.esOpcionPermitidaParaRol("Usuarios y roles", UserRole.DOCENTE))
+        assertFalse(dashboard.esOpcionPermitidaParaRol("Creacion de roles", UserRole.DOCENTE))
+        assertFalse(dashboard.esOpcionPermitidaParaRol("Roles", UserRole.DOCENTE))
 
         assertTrue(dashboard.esOpcionPermitidaParaRol("Programas académicos", UserRole.DOCENTE))
         assertTrue(dashboard.esOpcionPermitidaParaRol("Asignaturas", UserRole.DOCENTE))
@@ -122,6 +124,8 @@ class DashboardTest {
 
         // Administradores tienen acceso a todo
         assertTrue(dashboard.esOpcionPermitidaParaRol("Usuarios y roles", UserRole.ADMINISTRADOR))
+        assertTrue(dashboard.esOpcionPermitidaParaRol("Creacion de roles", UserRole.ADMINISTRADOR))
+        assertTrue(dashboard.esOpcionPermitidaParaRol("Roles", UserRole.ADMINISTRADOR))
         assertTrue(dashboard.esOpcionPermitidaParaRol("Programas académicos", UserRole.ADMINISTRADOR))
         assertTrue(dashboard.esOpcionPermitidaParaRol("Asignaturas", UserRole.ADMINISTRADOR))
         assertTrue(dashboard.esOpcionPermitidaParaRol("Proyectos", UserRole.ADMINISTRADOR))

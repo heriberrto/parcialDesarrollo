@@ -26,6 +26,9 @@ class LoginTest {
         ObjloginLogin.apellido = ""
         ObjloginLogin.nomUsu = ""
         ObjloginLogin.idperfil = 0
+
+        Login.resetFailedAttempts("admin@test.com")
+        Login.resetFailedAttempts("usuario.prueba@test.com")
     }
 
     // ==========================================
@@ -251,5 +254,37 @@ class LoginTest {
         assertEquals("", global.nombre)
         assertEquals("", global.perfil)
         assertEquals(0, global.idperfil)
+    }
+
+    // ==========================================
+    // 10. Account Lockout Tests (4 Failed Attempts)
+    // ==========================================
+
+    @Test
+    fun testAccountLockoutMechanismAfterFourAttempts() {
+        val testEmail = "usuario.prueba@test.com"
+
+        Login.resetFailedAttempts(testEmail)
+        assertFalse(Login.isAccountLocked(testEmail))
+        assertEquals(0, Login.getFailedAttempts(testEmail))
+
+        // Intentos 1, 2, 3
+        assertEquals(1, Login.recordFailedAttempt(testEmail))
+        assertFalse(Login.isAccountLocked(testEmail))
+
+        assertEquals(2, Login.recordFailedAttempt(testEmail))
+        assertFalse(Login.isAccountLocked(testEmail))
+
+        assertEquals(3, Login.recordFailedAttempt(testEmail))
+        assertFalse(Login.isAccountLocked(testEmail))
+
+        // Intento 4 -> Cuenta Bloqueada
+        assertEquals(4, Login.recordFailedAttempt(testEmail))
+        assertTrue(Login.isAccountLocked(testEmail))
+
+        // Reset/desbloqueo al tener éxito o administrado
+        Login.resetFailedAttempts(testEmail)
+        assertFalse(Login.isAccountLocked(testEmail))
+        assertEquals(0, Login.getFailedAttempts(testEmail))
     }
 }

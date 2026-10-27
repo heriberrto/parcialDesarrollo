@@ -15,12 +15,15 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -122,6 +125,41 @@ class Login : Screen {
         const val CORRECT_EMAIL = "admin@test.com"
         const val CORRECT_PASSWORD = "123456"
 
+        const val MAX_FAILED_ATTEMPTS = 4
+        private val failedAttemptsMap = mutableMapOf<String, Int>()
+        private val lockedAccounts = mutableSetOf<String>()
+
+        fun getFailedAttempts(email: String): Int {
+            val key = email.trim().lowercase()
+            return failedAttemptsMap[key] ?: 0
+        }
+
+        fun isAccountLocked(email: String): Boolean {
+            val key = email.trim().lowercase()
+            return lockedAccounts.contains(key) || (failedAttemptsMap[key] ?: 0) >= MAX_FAILED_ATTEMPTS
+        }
+
+        fun recordFailedAttempt(email: String): Int {
+            val key = email.trim().lowercase()
+            if (key.isBlank()) return 0
+            val current = (failedAttemptsMap[key] ?: 0) + 1
+            failedAttemptsMap[key] = current
+            if (current >= MAX_FAILED_ATTEMPTS) {
+                lockedAccounts.add(key)
+            }
+            return current
+        }
+
+        fun resetFailedAttempts(email: String) {
+            val key = email.trim().lowercase()
+            failedAttemptsMap.remove(key)
+            lockedAccounts.remove(key)
+        }
+
+        fun unlockAccount(email: String) {
+            resetFailedAttempts(email)
+        }
+
         fun isValidCredentials(email: String, password: String): Boolean {
             return email == CORRECT_EMAIL && password == CORRECT_PASSWORD
         }
@@ -189,6 +227,7 @@ class Login : Screen {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
@@ -199,22 +238,23 @@ class Login : Screen {
         var showDialog by remember { mutableStateOf(false) }
         var passwordVisible by remember { mutableStateOf(false) }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Iniciar Sesión",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("SIGAPI - Iniciar Sesión") }
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = usuario,
@@ -248,6 +288,12 @@ class Login : Screen {
 
             Button(
                 onClick = {
+                    if (isAccountLocked(usuario)) {
+                        mensaje.value = "La cuenta '$usuario' se encuentra bloqueada por superar el límite de $MAX_FAILED_ATTEMPTS intentos fallidos. Contacte al administrador."
+                        showDialog = true
+                        return@Button
+                    }
+
                     scope.launch {
                         try {
                             val responseText: String = client.post(ApiCliente.BASE_URL + "login.php") {
@@ -256,6 +302,8 @@ class Login : Screen {
                                     Parameters.build {
                                         append("email", usuario)
                                         append("password", clave)
+                                        append("password_hash", CryptoUtils.sha256(clave))
+                                        append("password_encrypted", CryptoUtils.encryptField(clave))
                                         append("usuario", usuario)
                                         append("clave", clave)
                                     }.formUrlEncode()
@@ -291,6 +339,7 @@ class Login : Screen {
                                     ObjloginLogin.idperfil = global.idperfil
                                     settings.putString(KEY_USU, usuario)
                                     settings.putString(KEY_CLAV, clave)
+                                    resetFailedAttempts(usuario)
                                     navigator.push(dashboard())
                                 } else {
                                     mensaje.value = "El servidor devolvió una página HTML en lugar de JSON. Verifica la ruta de 'login.php' en tu servidor web."
@@ -368,10 +417,18 @@ class Login : Screen {
                                     settings.putString(KEY_USU, usuario)
                                     settings.putString(KEY_CLAV, clave)
 
+                                    resetFailedAttempts(usuario)
                                     mensaje.value = "Inicio de sesión exitoso."
                                     navigator.push(dashboard())
                                 } else {
-                                    mensaje.value = if (serverError.isNotEmpty()) serverError else "Correo o contraseña incorrectos."
+                                    val attempts = recordFailedAttempt(usuario)
+                                    if (attempts >= MAX_FAILED_ATTEMPTS) {
+                                        mensaje.value = "Cuenta bloqueada. Ha superado el límite de $MAX_FAILED_ATTEMPTS intentos fallidos de contraseña."
+                                    } else {
+                                        val restantes = MAX_FAILED_ATTEMPTS - attempts
+                                        val baseErr = if (serverError.isNotEmpty()) serverError else "Correo o contraseña incorrectos."
+                                        mensaje.value = "$baseErr Te quedan $restantes intento(s) antes de bloquear la cuenta."
+                                    }
                                     showDialog = true
                                 }
                             }
@@ -402,9 +459,16 @@ class Login : Screen {
                                 ObjloginLogin.idperfil = global.idperfil
                                 settings.putString(KEY_USU, usuario)
                                 settings.putString(KEY_CLAV, clave)
+                                resetFailedAttempts(usuario)
                                 navigator.push(dashboard())
                             } else {
-                                mensaje.value = "Error de conexión: ${e.message}"
+                                val attempts = recordFailedAttempt(usuario)
+                                if (attempts >= MAX_FAILED_ATTEMPTS) {
+                                    mensaje.value = "Cuenta bloqueada. Ha superado el límite de $MAX_FAILED_ATTEMPTS intentos fallidos de contraseña."
+                                } else {
+                                    val restantes = MAX_FAILED_ATTEMPTS - attempts
+                                    mensaje.value = "Credenciales incorrectas o error de conexión (${e.message}). Te quedan $restantes intento(s) antes de bloquear la cuenta."
+                                }
                                 showDialog = true
                             }
                         }
@@ -441,6 +505,7 @@ class Login : Screen {
             }
         }
     }
+}
 }
 
 typealias login = Login

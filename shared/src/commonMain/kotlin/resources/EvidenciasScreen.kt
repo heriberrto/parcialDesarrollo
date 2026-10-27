@@ -102,12 +102,26 @@ class EvidenciasScreen : Screen {
             return isValidIdActividad(idActividad) && isValidIdUsuario(idUsuario) && isValidTitulo(titulo)
         }
 
-        fun validarFormulario(idActividad: String, idUsuario: String, titulo: String): String? {
+        fun isExtensionPermitida(nombreArchivo: String): Boolean {
+            if (nombreArchivo.isBlank()) return true
+            val extension = nombreArchivo.substringAfterLast('.', "").lowercase().trim()
+            return extension in listOf("pdf", "docx", "doc", "xlsx", "xls")
+        }
+
+        fun validarFormulario(
+            idActividad: String,
+            idUsuario: String,
+            titulo: String,
+            nombreArchivo: String = ""
+        ): String? {
             if (titulo.isBlank() || idActividad.isBlank() || idUsuario.isBlank()) {
                 return "El título, ID de actividad e ID de usuario son obligatorios."
             }
             if (idActividad.toIntOrNull() == null || idUsuario.toIntOrNull() == null) {
                 return "El ID de la actividad y del usuario deben ser números enteros."
+            }
+            if (nombreArchivo.isNotBlank() && !isExtensionPermitida(nombreArchivo)) {
+                return "Tipo de archivo no permitido. Solo se aceptan documentos PDF (.pdf), Word (.docx, .doc) y Excel (.xlsx, .xls)."
             }
             return null
         }
@@ -155,9 +169,14 @@ class EvidenciasScreen : Screen {
 
         // Selector de archivos multiplataforma/nativo
         val abirSelectorArchivo = rememberFilePickerLauncher { nombre, bytes ->
-            archivoAdjunto = ArchivoAdjuntoData(nombre, bytes)
-            nombreArchivo = nombre
-            rutaArchivo = "uploads/$nombre"
+            if (!isExtensionPermitida(nombre)) {
+                errorFormulario = "Archivo no permitido: '$nombre'. Solo se aceptan documentos PDF (.pdf), Word (.docx, .doc) y Excel (.xlsx, .xls)."
+            } else {
+                archivoAdjunto = ArchivoAdjuntoData(nombre, bytes)
+                nombreArchivo = nombre
+                rutaArchivo = "uploads/$nombre"
+                errorFormulario = null
+            }
         }
 
         fun cargarDatos() {
@@ -255,7 +274,7 @@ class EvidenciasScreen : Screen {
         }
 
         fun guardar() {
-            val error = validarFormulario(idActividad, idUsuario, titulo)
+            val error = validarFormulario(idActividad, idUsuario, titulo, nombreArchivo)
             if (error != null) {
                 errorFormulario = error
                 return
@@ -565,6 +584,12 @@ class EvidenciasScreen : Screen {
                             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                             Text(if (archivoAdjunto != null) "Cambiar archivo seleccionado" else "📁 Seleccionar archivo del dispositivo")
                         }
+
+                        Text(
+                            text = "Formatos permitidos: PDF (.pdf), Word (.docx, .doc), Excel (.xlsx, .xls)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
 
                         if (archivoAdjunto != null) {
                             Text(

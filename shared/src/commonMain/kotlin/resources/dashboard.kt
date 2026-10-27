@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Groups
@@ -23,13 +25,16 @@ import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,19 +84,20 @@ class dashboard : Screen {
             val emailLower = global.email.lowercase().trim()
 
             return when {
-                global.idperfil == 2 || perfilLower.contains("estudiante") || perfilLower == "2" ||
-                        usuarioLower.contains("estudiante") || emailLower.contains("estudiante") ->
-                    UserRole.ESTUDIANTE
-
-                global.idperfil == 3 || perfilLower.contains("docente") || perfilLower == "3" ||
-                        usuarioLower.contains("docente") || emailLower.contains("docente") ->
-                    UserRole.DOCENTE
-
                 global.idperfil == 1 || perfilLower.contains("admin") || perfilLower == "1" ||
                         usuarioLower.contains("admin") || emailLower.contains("admin") ->
                     UserRole.ADMINISTRADOR
 
-                else -> UserRole.ESTUDIANTE
+                global.idperfil == 3 || perfilLower.contains("docente") || perfilLower == "3" ||
+                        usuarioLower.contains("docente") || emailLower.contains("docente") ||
+                        perfilLower.contains("profesor") || perfilLower.contains("tutor") ->
+                    UserRole.DOCENTE
+
+                global.idperfil == 2 || perfilLower.contains("estudiante") || perfilLower == "2" ||
+                        usuarioLower.contains("estudiante") || emailLower.contains("estudiante") ->
+                    UserRole.ESTUDIANTE
+
+                else -> UserRole.ADMINISTRADOR
             }
         }
 
@@ -110,7 +116,9 @@ class dashboard : Screen {
                             tituloOpcion.equals("Equipos de estudiantes", ignoreCase = true)
                 }
                 UserRole.DOCENTE -> {
-                    !tituloOpcion.equals("Usuarios y roles", ignoreCase = true)
+                    !tituloOpcion.equals("Usuarios y roles", ignoreCase = true) &&
+                            !tituloOpcion.equals("Creacion de roles", ignoreCase = true) &&
+                            !tituloOpcion.equals("Roles", ignoreCase = true)
                 }
                 UserRole.ADMINISTRADOR -> {
                     true
@@ -131,6 +139,7 @@ class dashboard : Screen {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
 
@@ -197,6 +206,12 @@ class dashboard : Screen {
                 screen = UsuariosScreen()
             ),
             MenuOption(
+                titulo = "Creacion de roles",
+                descripcion = "Registro, consulta, edición y control de Roles",
+                icono = Icons.Default.SupervisorAccount,
+                screen = RolesScreen()
+            ),
+            MenuOption(
                 titulo = "Programas académicos",
                 descripcion = "Registro, consulta y edición de programas",
                 icono = Icons.Default.School,
@@ -211,20 +226,26 @@ class dashboard : Screen {
             MenuOption(
                 titulo = "Proyectos",
                 descripcion = "Registro, consulta y edición de proyectos",
-                icono = Icons.Default.Assignment,
+                icono = Icons.AutoMirrored.Filled.Assignment,
                 screen = ProyectosScreen()
             ),
             MenuOption(
                 titulo = "Actividades",
                 descripcion = "Creacion y consulta de actividades",
-                icono = Icons.Default.SupervisorAccount,
+                icono = Icons.Default.Assignment,
                 screen = ActividadesScreen()
             ),
             MenuOption(
                 titulo = "Evidencias",
                 descripcion = "Subida de evidencias para las actividades en los proyectos",
-                icono = Icons.Default.SupervisorAccount,
+                icono = Icons.Default.MenuBook,
                 screen = EvidenciasScreen()
+            ),
+            MenuOption(
+                titulo = "Calificaciones",
+                descripcion = "Calificacion de evidencias",
+                icono = Icons.Default.MenuBook,
+                screen = CalificacionesScreen()
             ),
             MenuOption(
                 titulo = "Equipos de estudiantes",
@@ -246,6 +267,45 @@ class dashboard : Screen {
         }
 
         Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("SIGAPI - Dashboard", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                text = "${obtenerNombreUsuarioConectado()} (${obtenerNombreRolActual()})",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                global.documento = ""
+                                global.nombre = ""
+                                global.apellido = ""
+                                global.email = ""
+                                global.usuario = ""
+                                global.clave = ""
+                                global.perfil = ""
+                                global.idperfil = 0
+                                global.nomUsu = ""
+                                ObjloginLogin.nombre = ""
+                                ObjloginLogin.apellido = ""
+                                ObjloginLogin.nomUsu = ""
+                                ObjloginLogin.idperfil = 0
+                                navigator?.popUntilRoot()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Cerrar sesión"
+                            )
+                        }
+                    }
+                )
+            },
             bottomBar = {
                 NavigationBar {
                     NavigationBarItem(

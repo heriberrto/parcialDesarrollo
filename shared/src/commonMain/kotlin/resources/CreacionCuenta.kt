@@ -11,16 +11,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,6 +116,7 @@ class CreacionCuenta : Screen {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
@@ -129,22 +134,28 @@ class CreacionCuenta : Screen {
         var showDialog by remember { mutableStateOf(false) }
         var isSuccess by remember { mutableStateOf(false) }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Crear Cuenta",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Crear Cuenta") },
+                    navigationIcon = {
+                        IconButton(onClick = { navigator.pop() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+            Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = identificacion,
@@ -239,16 +250,19 @@ class CreacionCuenta : Screen {
                                         append("apellidos", apellido)
                                         append("email", email)
                                         append("correo", email)
-                                        append("password_hash", password)
+                                        append("password_hash", CryptoUtils.sha256(password))
+                                        append("password_encrypted", CryptoUtils.encryptField(password))
                                         append("contraseña", password)
                                         append("password", password)
-                                        append("rol", rol)
-                                        append("id_rol", when(rol.trim().lowercase()) {
-                                            "administrador", "admin" -> "1"
-                                            "estudiante" -> "2"
-                                            "docente" -> "3"
+                                        val rolLower = rol.trim().lowercase()
+                                        val computedIdRol = when {
+                                            rolLower.contains("admin") -> "1"
+                                            rolLower.contains("docente") || rolLower.contains("profesor") || rolLower.contains("tutor") -> "3"
                                             else -> "2"
-                                        })
+                                        }
+                                        append("rol", rol)
+                                        append("id_rol", computedIdRol)
+                                        append("id_perfil", computedIdRol)
                                     }.formUrlEncode()
                                 )
                             }.body()
@@ -317,4 +331,5 @@ class CreacionCuenta : Screen {
             }
         }
     }
+}
 }
